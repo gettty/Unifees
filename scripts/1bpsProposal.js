@@ -33,20 +33,18 @@ const FactoryAbi = require("../abi/factory.json");
     const goveranceContract = new ethers.Contract("0x408ED6354d4973f66138C91495F2f2FCbd8724C3", GovAbi, signer)
     const UniswapToken = new ethers.Contract("0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", UniswapTokenAbi, signer)
     const factoryContract = new ethers.Contract("0x1F98431c8aD98523631AE4a59f267346ea31F984", FactoryAbi, signer)
-    const accountVotes = await UniswapToken.getCurrentVotes(accountToInpersonate)
-    console.log("account votes", accountVotes / 1e18)  
-    let currentProposalCount = await goveranceContract.proposalCount();
+    let currentProposalCount = await goveranceContract.proposalCount(); //expect 8
     console.log("current number of proposals created: "+currentProposalCount);
     let fiveCheck = await factoryContract.feeAmountTickSpacing(500);
-    console.log(fiveCheck);
+    console.log(fiveCheck); //expect 10
     let oneCheck = await factoryContract.feeAmountTickSpacing(100);
-    console.log(oneCheck);
+    console.log(oneCheck); //expect 0
 
     await goveranceContract.propose(["0x1F98431c8aD98523631AE4a59f267346ea31F984"],[0],["enableFeeAmount(uint24,int24)"],["0x00000000000000000000000000000000000000000000000000000000000000640000000000000000000000000000000000000000000000000000000000000001"],"hello");
     currentProposalCount = await goveranceContract.proposalCount();
-    console.log("current number of proposals created: "+currentProposalCount);
+    console.log("current number of proposals created: "+currentProposalCount); //expect 9
     let proposalInfo = await goveranceContract.proposals(9);
-    console.log(proposalInfo.length);
+    console.log(proposalInfo);
 
     async function advanceBlockHeight(blocks) {
         const txns = [];
@@ -56,7 +54,7 @@ const FactoryAbi = require("../abi/factory.json");
         await Promise.all(txns);
       }
       
-    await advanceBlockHeight(13141); // fast forward 1000 Ethereum blocks
+    await advanceBlockHeight(13141); // fast forward through review period
 
     await goveranceContract.castVote(9,1)
 
@@ -83,7 +81,7 @@ const FactoryAbi = require("../abi/factory.json");
           await goveranceContract.connect(signer).castVote(9,1)
     }
 
-    await advanceBlockHeight(40320); // fast forward 1000 Ethereum blocks
+    await advanceBlockHeight(40320); // fast forward through voting period
 
     await goveranceContract.queue(9);
     
@@ -95,17 +93,17 @@ const FactoryAbi = require("../abi/factory.json");
         params: [172800],
       });
 
-    await advanceBlockHeight(1)
+    await advanceBlockHeight(1) //after changing the time mine one block
 
     await goveranceContract.execute(9);
 
     proposalInfo = await goveranceContract.proposals(9);
-    console.log(proposalInfo);
+    console.log(proposalInfo); //expect "executed"
 
     fiveCheck = await factoryContract.feeAmountTickSpacing(500);
-    console.log(fiveCheck);
+    console.log(fiveCheck); //expect 10
     oneCheck = await factoryContract.feeAmountTickSpacing(100);
-    console.log(oneCheck);
+    console.log(oneCheck); //expect 1
 
   }
   
